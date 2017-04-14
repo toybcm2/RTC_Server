@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Text;
+using Windows.Networking.Sockets;
+using Windows.Storage.Streams;
 
 namespace ChatServer
 {
     class StateObject
     {
         // Client  socket.
-        public System.Net.Sockets.Socket workSocket = null;
+        //public System.Net.Sockets.Socket workSocket = null;
+        public StreamSocket workSocket = null;
+        public DataWriter writer = null;
+        public DataReader reader = null;
         // Size of receive buffer.
         public const int BufferSize = 1024;
         // Receive buffer.

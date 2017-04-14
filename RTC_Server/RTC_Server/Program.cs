@@ -89,18 +89,18 @@ namespace ChatServer
 
         public static async void OnConnection(StreamSocketListener listener, StreamSocketListenerConnectionReceivedEventArgs args)
         {
-           Console.WriteLine("New Client Connected");
+            Console.WriteLine("New Client Connected");
+            StateObject client = new StateObject();
 
-            string message = "Hello World!";
+            client.workSocket = args.Socket;
+            client.reader = new DataReader(args.Socket.InputStream);
+            client.writer = new DataWriter(args.Socket.OutputStream);
+            
+                 
 
-            using (var dw = new DataWriter(args.Socket.OutputStream))
-            {
-                dw.WriteString(message);
-                await dw.StoreAsync();
-                dw.DetachStream();
-            }
-            allDone.Set();
         }
+
+        
 
         public static void AcceptCallback(IAsyncResult ar)
         {
