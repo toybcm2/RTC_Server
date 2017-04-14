@@ -4,6 +4,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Windows.Networking;
+using Windows.Networking.Connectivity;
+using Windows.Networking.Sockets;
+using Windows.Storage.Streams;
 
 namespace ChatServer
 {
@@ -12,6 +17,7 @@ namespace ChatServer
         // Thread signal.
         private static ManualResetEvent allDone = new ManualResetEvent(false);
         private static Dictionary<Guid, Chat_Room> rooms = new Dictionary<Guid, Chat_Room>();
+        private static StreamSocketListener listener = new StreamSocketListener();
 
         public static int Main(String[] args)
         {
@@ -19,6 +25,9 @@ namespace ChatServer
             Chat_Room gen = new Chat_Room("General");
             rooms.Add(gen.GetId(), gen);
 
+            //listener.BindEndpointAsync(new HostName("localhost"), "8888").AsTask().Wait();
+            Console.WriteLine("Server Starting up...");
+            //listener.ConnectionReceived += OnConnection;
             StartListening();
             return 0;
         }
@@ -37,23 +46,32 @@ namespace ChatServer
             IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 8888);
 
             // Create a TCP/IP socket.
-            Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            //Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            //StreamSocketListener lisener = new StreamSocketListener();
+            //StreamSocketListenerConnectionReceivedEventArgs onConnection;
 
             // Bind the socket to the local endpoint and listen for incoming connections.
             try
             {
-                listener.Bind(localEndPoint);
-                listener.Listen(100);
+                //listener.Bind(localEndPoint);
+                //listener.Listen(100);
+                listener.ConnectionReceived += OnConnection;
+                IReadOnlyList<HostName> hosts = NetworkInformation.GetHostNames();
+                HostName myName = hosts[3];
 
+                foreach (var item in hosts)
+                {
+                    Console.WriteLine(item);
+                }
+                Task.Run(async () => { await listener.BindEndpointAsync(myName, "8888"); });
                 while (true)
                 {
                     // Set the event to nonsignaled state.
                     allDone.Reset();
-
                     // Start an asynchronous socket to listen for connections.
-                    Console.WriteLine("Waiting for a connection...");
-                    listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
-
+                    Console.WriteLine("Waiting for a connection...");         
+                    //listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
+                    //listener.ConnectionReceived += OnConnection;
                     // Wait until a connection is made before continuing.
                     allDone.WaitOne();
                 }
@@ -67,6 +85,21 @@ namespace ChatServer
             Console.WriteLine("\nPress ENTER to continue...");
             Console.Read();
 
+        }
+
+        public static async void OnConnection(StreamSocketListener listener, StreamSocketListenerConnectionReceivedEventArgs args)
+        {
+           Console.WriteLine("New Client Connected");
+
+            string message = "Hello World!";
+
+            using (var dw = new DataWriter(args.Socket.OutputStream))
+            {
+                dw.WriteString(message);
+                await dw.StoreAsync();
+                dw.DetachStream();
+            }
+            allDone.Set();
         }
 
         public static void AcceptCallback(IAsyncResult ar)
