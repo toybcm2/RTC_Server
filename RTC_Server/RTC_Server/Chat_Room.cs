@@ -5,14 +5,14 @@ namespace ChatServer
 {
     class Chat_Room
     {
-        private Dictionary<Guid, StateObject> chatMembers = new Dictionary<Guid, StateObject>();
+        private Dictionary<string, StateObject> chatMembers = new Dictionary<string, StateObject>();
         private String name;
         private Guid Id;
 
-        public Chat_Room(String name)
+        public Chat_Room(String name, Guid roomId)
         {
             SetName(name);
-            Id = Guid.NewGuid();
+            Id = roomId;
         }
 
         public void SetName(String s)
@@ -30,9 +30,9 @@ namespace ChatServer
             return this.Id;
         }
 
-        public void AddMember(StateObject newMember, Guid memberId, String alias)
+        public void AddMember(StateObject newMember, string memberId, string alias)
         {
-            newMember.Id = memberId;
+            newMember.ClientId = memberId;
             newMember.Alias = alias;
             chatMembers.Add(memberId, newMember);
         }
@@ -42,7 +42,7 @@ namespace ChatServer
 
         }
 
-        public Dictionary<Guid, StateObject> GetMembers()
+        public Dictionary<string, StateObject> GetMembers()
         {
             return chatMembers;
         }

@@ -19,7 +19,9 @@ namespace ChatServer
         // Received data string.
         public StringBuilder sb = new StringBuilder();
 
-        public Guid Id { get; set; }
+        public Guid RoomId { get; set; }
+        public string ClientId { get; set; }
+        //public Guid Id { get; set; }
         public String Alias { get; set; }
 
     }
