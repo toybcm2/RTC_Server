@@ -21,58 +21,24 @@ namespace ChatServer
 
         public static int Main(String[] args)
         {
-            //Create defualt general chat room
-            //Chat_Room gen = new Chat_Room("General");
-            //rooms.Add(gen.GetId(), gen);
-
-            //listener.BindEndpointAsync(new HostName("localhost"), "8888").AsTask().Wait();
             Console.WriteLine("Server Starting up...");
-            //listener.ConnectionReceived += OnConnection;
             StartListening();
             return 0;
         }
 
         public static void StartListening()
         {
-            // Data buffer for incoming data.
-            byte[] bytes = new Byte[1024];
-
-            // Establish the local endpoint for the socket.
-            // The DNS name of the computer
-            // running the listener is "host.contoso.com".
-            //IPHostEntry ipHostInfo = Dns.GetHostEntry("127.0.0.1");
-            //IPAddress ipAddress = ipHostInfo.AddressList[0];
-            //IPAddress ipAddress = Dns.GetHostAddresses("127.0.0.1")[0];
-            //IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 8888);
-
-            // Create a TCP/IP socket.
-            //Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //StreamSocketListener lisener = new StreamSocketListener();
-            //StreamSocketListenerConnectionReceivedEventArgs onConnection;
-
-            // Bind the socket to the local endpoint and listen for incoming connections.
             try
             {
-                //listener.Bind(localEndPoint);
-                //listener.Listen(100);
                 listener.ConnectionReceived += OnConnection;
                 IReadOnlyList<HostName> hosts = NetworkInformation.GetHostNames();
                 HostName myName = hosts[3];
 
-                foreach (var item in hosts)
-                {
-                    Console.WriteLine(item);
-                }
                 Task.Run(async () => { await listener.BindEndpointAsync(myName, "8888"); });
                 while (true)
                 {
-                    // Set the event to nonsignaled state.
                     allDone.Reset();
-                    // Start an asynchronous socket to listen for connections.
                     Console.WriteLine("Waiting for a connection...");         
-                    //listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
-                    //listener.ConnectionReceived += OnConnection;
-                    // Wait until a connection is made before continuing.
                     allDone.WaitOne();
                 }
 
@@ -92,38 +58,47 @@ namespace ChatServer
             Console.WriteLine("New Client Connected");
 
             Task.Run(() => {
+                //ManualResetEvent wait = new ManualResetEvent(false);
                 StateObject client = new StateObject();
                 client.workSocket = args.Socket;
                 client.reader = new DataReader(args.Socket.InputStream);
                 client.writer = new DataWriter(args.Socket.OutputStream);
+                client.connected = true;
 
-                Listen(client);
+                while(client.connected)
+                    Listen(client);
             });
 
             allDone.Set();
         }
 
-        public static async void Listen(StateObject client)
+        public static void Listen(StateObject client)
         {
-            byte[] header = new byte[5];
-            await client.reader.LoadAsync(5);   
-            client.reader.ReadBytes(header);
-
-            int command = header[0];
-            //uint length = Convert.ToUInt32(header.Substring(1));
-            string slength = header[1].ToString() + header[2].ToString() + header[3].ToString() + header[4].ToString();
-            uint length = Convert.ToUInt32(slength);
-
-            await client.reader.LoadAsync(length);
-            string data = client.reader.ReadString(length);
-
-            if (command == 0)
-                SendToAll(client.RoomId, data);
-            else
+            try
             {
-                CheckArgs(client, data);
-            }
+                byte[] header = new byte[5];
+                client.reader.LoadAsync((uint)5).AsTask().Wait();
+                client.reader.ReadBytes(header);
 
+                int command = header[0];
+                string slength = header[1].ToString() + header[2].ToString() + header[3].ToString() + header[4].ToString();
+                uint length = Convert.ToUInt32(slength);
+
+                client.reader.LoadAsync(length).AsTask().Wait();
+                string data = client.reader.ReadString(length);
+
+                if (command == 0)
+                    SendToAll(client.RoomId, data);
+                else
+                {
+                    CheckArgs(client, data);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                client.connected = false;
+            }
         }
 
         public static void SendToAll(Guid roomId, string data)
@@ -176,7 +151,6 @@ namespace ChatServer
 
         private static void CheckArgs(StateObject client, string data)
         {
-            Guid roomId;
             string alias, memberId;
             var args = data.Split(':');
             string comand = args[0];
@@ -187,71 +161,21 @@ namespace ChatServer
 
                     memberId = args[1];
                     alias = args[2];
-                    roomId = Guid.Parse(args[3]);
+                    client.RoomId = Guid.Parse(args[3]);
 
                     try
                     {
-                        rooms[roomId].AddMember(client, memberId, alias);
-                        SendToAll(roomId, alias + " Joined the chat.");
+                        rooms[client.RoomId].AddMember(client, memberId, alias);
+                        SendToAll(client.RoomId, alias + " Joined the chat.");
                     }
                     catch(KeyNotFoundException e)
                     {
                         Console.WriteLine("client tried to connect to room that doesnt exsist, so now we're making it.");
-                        rooms.Add(roomId, new Chat_Room("default", roomId));
-                        rooms[roomId].AddMember(client, memberId, alias);
-                        SendToAll(roomId, alias + " Joined the chat.");
+                        rooms.Add(client.RoomId, new Chat_Room("default", client.RoomId));
+                        rooms[client.RoomId].AddMember(client, memberId, alias);
+                        SendToAll(client.RoomId, alias + " Joined the chat.");
                     }
                     break;
-
-                /*case ("~join_by_name"):
-                    chatName = args[1];
-                    alias = args[2];
-                    memberId = Guid.Parse(args[3]);
-                    List<Chat_Room> temp = new List<Chat_Room>();
-                    //search current rooms for matching name
-                    foreach (Chat_Room room in rooms.Values)
-                    {
-                        if (room.GetName().Equals(chatName))
-                            temp.Add(room);
-                    }
-                    //check if more than one room was found
-                    if (temp.Count > 1)
-                        Send(state.workSocket, "More than one chat room by the name \"" + chatName + "\" was found, please join via the Id option.");
-                    else
-                    {
-                        Guid g = temp[0].GetId();
-                        rooms[g].AddMember(state, memberId, alias);
-                        Send(state.workSocket, "~sucess " + g.ToString());
-                        //let everyone know a new member has joined
-                        sendToAll(g, memberId, alias + " just joined the chat.");
-                    }
-                    break;
-
-                case ("create"):
-                    chatName = args[1];
-                    memberId = args[2];
-                    alias = args[3];
-
-                    Chat_Room newRoom = new Chat_Room(chatName);
-                    rooms.Add(newRoom.GetId(), newRoom);
-                    rooms[newRoom.GetId()].AddMember(state, memberId, alias);
-
-                    String toSend = "~sucess " + newRoom.GetId().ToString() + "";
-                    Send(state.workSocket, toSend);
-                    break;
-
-                case ("~list"):
-                    break;
-
-                case ("~search"):
-                    break;*/
-
-                    /*case (""):
-                        break;
-                    case (""):
-                        break;
-                    case (""):
-                        break;*/
             }
         }
 
