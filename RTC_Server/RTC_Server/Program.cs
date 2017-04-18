@@ -16,7 +16,7 @@ namespace ChatServer
     {
         // Thread signal.
         private static ManualResetEvent allDone = new ManualResetEvent(false);
-        private static Dictionary<Guid, Chat_Room> rooms = new Dictionary<Guid, Chat_Room>();
+        private static Dictionary<string, Chat_Room> rooms = new Dictionary<string, Chat_Room>();
         private static StreamSocketListener listener = new StreamSocketListener();
 
         public static int Main(String[] args)
@@ -101,7 +101,7 @@ namespace ChatServer
             }
         }
 
-        public static void SendToAll(Guid roomId, string data)
+        public static void SendToAll(string roomId, string data)
         {
             foreach (var member in rooms[roomId].GetMembers())
             {
@@ -161,7 +161,7 @@ namespace ChatServer
 
                     memberId = args[1];
                     alias = args[2];
-                    client.RoomId = Guid.Parse(args[3]);
+                    client.RoomId = args[3];
 
                     try
                     {

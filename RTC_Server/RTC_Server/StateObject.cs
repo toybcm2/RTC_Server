@@ -11,7 +11,7 @@ namespace ChatServer
         public DataWriter writer = null;
         public DataReader reader = null;
         public bool connected = false;
-        public Guid RoomId { get; set; }
+        public string RoomId { get; set; }
         public string ClientId { get; set; }
         public String Alias { get; set; }
 

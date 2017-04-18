@@ -7,9 +7,9 @@ namespace ChatServer
     {
         private Dictionary<string, StateObject> chatMembers = new Dictionary<string, StateObject>();
         private String name;
-        private Guid Id;
+        private string Id;
 
-        public Chat_Room(String name, Guid roomId)
+        public Chat_Room(String name, string roomId)
         {
             SetName(name);
             Id = roomId;
@@ -25,7 +25,7 @@ namespace ChatServer
             return this.name;
         }
 
-        public Guid GetId()
+        public string GetId()
         {
             return this.Id;
         }
