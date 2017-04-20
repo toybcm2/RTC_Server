@@ -19,7 +19,7 @@ namespace ChatServer
         private static Dictionary<string, Chat_Room> rooms = new Dictionary<string, Chat_Room>();
         private static StreamSocketListener listener = new StreamSocketListener();
 
-        public static int Main(String[] args)
+        public static int Main(string[] args)
         {
             Console.WriteLine("Server Starting up...");
             StartListening();
@@ -101,20 +101,20 @@ namespace ChatServer
             }
         }
 
-        public static void SendToAll(string roomId, string data)
+        public static void SendToAll(string roomId, string data, byte x = 0)
         {
             foreach (var member in rooms[roomId].GetMembers())
             {
-                Task.Run(() => { SendAsync(member.Value, data); });
+                Task.Run(() => { SendAsync(member.Value, data, x); });
             }
         }
 
-        public static async void SendAsync(StateObject client, string data)
+        public static async void SendAsync(StateObject client, string data, byte commandResponse = 0)
         {
             try
             {
                 string count = data.Length.ToString();
-                byte[] header = { 0, 0, 0, 0 };
+                byte[] header = { commandResponse , 0, 0, 0 };
                 switch(count.Length)
                 {
                     case 1:
@@ -161,7 +161,7 @@ namespace ChatServer
 
                     memberId = args[1];
                     alias = args[2];
-                    client.RoomId = args[3];
+                    client.RoomId = args[4];
 
                     try
                     {
@@ -175,6 +175,43 @@ namespace ChatServer
                         rooms[client.RoomId].AddMember(client, memberId, alias);
                         SendToAll(client.RoomId, alias + " Joined the chat.");
                     }
+                    break;
+                case ("queue_request"):
+
+                    memberId = args[1];
+                    alias = args[2];
+                    
+                    Console.WriteLine("user queue request");
+                    if(rooms[client.RoomId].HasAdmin())
+                    {
+                        string request = "queue_request:" + memberId + ":" + alias;
+                        SendAsync(rooms[client.RoomId].GetAdmin(), request, 1);
+                    }
+                    break;
+
+                case ("queue_accept"):
+                    memberId = args[1];
+                    alias = args[2];
+                    uint count = Convert.ToUInt32(args[3]);
+                    byte[] image = new byte[count];
+
+                    client.reader.LoadAsync(count).AsTask().Wait();
+                    client.reader.ReadBytes(image);
+
+                    string command = "queue_add:" + alias + ":" + count;
+                    SendToAll(client.RoomId, comand, 1);
+                    foreach (var member in rooms[client.RoomId].GetMembers())
+                    {
+                        Task.Run(async () =>
+                        {
+                            member.Value.writer.WriteBytes(image);
+                            await member.Value.writer.StoreAsync();
+                        }); 
+
+                    }
+                    break;
+
+                case ("queue_reject"):
                     break;
             }
         }

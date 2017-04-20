@@ -6,8 +6,9 @@ namespace ChatServer
     class Chat_Room
     {
         private Dictionary<string, StateObject> chatMembers = new Dictionary<string, StateObject>();
-        private String name;
+        private string name;
         private string Id;
+        private StateObject Admin = null;
 
         public Chat_Room(String name, string roomId)
         {
@@ -45,6 +46,30 @@ namespace ChatServer
         public Dictionary<string, StateObject> GetMembers()
         {
             return chatMembers;
+        }
+
+        public StateObject GetAdmin()
+        {
+            StateObject admin = new StateObject();
+            foreach (var mem in chatMembers)
+            {
+                if(mem.Value.admin)
+                {
+                    admin = mem.Value;
+                    break;
+                }
+            }
+            return admin;
+        }
+
+        public bool HasAdmin()
+        {
+            foreach (var mem in chatMembers)
+            {
+                if (mem.Value.admin)
+                    return true;
+            }
+            return false;
         }
     }
 }

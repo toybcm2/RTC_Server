@@ -13,7 +13,8 @@ namespace ChatServer
         public bool connected = false;
         public string RoomId { get; set; }
         public string ClientId { get; set; }
-        public String Alias { get; set; }
+        public string Alias { get; set; }
+        public bool admin { get; set; }
 
     }
 }
