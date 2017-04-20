@@ -114,26 +114,26 @@ namespace ChatServer
             try
             {
                 string count = data.Length.ToString();
-                byte[] header = { commandResponse , 0, 0, 0 };
+                byte[] header = { commandResponse , 0, 0, 0, 0 };
                 switch(count.Length)
                 {
                     case 1:
-                        header[3] = byte.Parse(count[0].ToString());
+                        header[4] = byte.Parse(count[0].ToString());
                         break;
                     case 2:
+                        header[4] = byte.Parse(count[1].ToString());
+                        header[3] = byte.Parse(count[0].ToString());
+                        break;
+                    case 3:
+                        header[4] = byte.Parse(count[2].ToString());
                         header[3] = byte.Parse(count[1].ToString());
                         header[2] = byte.Parse(count[0].ToString());
                         break;
-                    case 3:
+                    case 4:
+                        header[4] = byte.Parse(count[3].ToString());
                         header[3] = byte.Parse(count[2].ToString());
                         header[2] = byte.Parse(count[1].ToString());
                         header[1] = byte.Parse(count[0].ToString());
-                        break;
-                    case 4:
-                        header[3] = byte.Parse(count[3].ToString());
-                        header[2] = byte.Parse(count[2].ToString());
-                        header[1] = byte.Parse(count[1].ToString());
-                        header[0] = byte.Parse(count[0].ToString());
                         break;
                 }
 
