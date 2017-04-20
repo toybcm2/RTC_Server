@@ -161,6 +161,7 @@ namespace ChatServer
 
                     memberId = args[1];
                     alias = args[2];
+                    client.admin = args[3] == "True" ? true : false;
                     client.RoomId = args[4];
 
                     try
